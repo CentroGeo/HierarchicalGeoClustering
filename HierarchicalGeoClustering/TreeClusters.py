@@ -28,7 +28,7 @@ from anytree import NodeMixin, RenderTree
 
 
 
-# %% ../src/00_TreeClusters.ipynb 7
+# %% ../src/00_TreeClusters.ipynb 6
 def inside_polygon(list_points:list, # List of points to consider
                    poligon_check: shapely.geometry.Polygon, # Polygon to consider
                    min_percent:float # Minimun percent of point to be consider inside 
@@ -47,7 +47,7 @@ def inside_polygon(list_points:list, # List of points to consider
 
         return False , inside
 
-# %% ../src/00_TreeClusters.ipynb 9
+# %% ../src/00_TreeClusters.ipynb 8
 def poligon_non_convex_from_Points( points_li:list # A list of shapely.geometry.Point 
                                   ) -> shapely.geometry.Polygon : #The polygon created 
     """
@@ -67,7 +67,7 @@ def poligon_non_convex_from_Points( points_li:list # A list of shapely.geometry.
             keep_triangles.append(i)
     return shapely.ops.unary_union(keep_triangles)
 
-# %% ../src/00_TreeClusters.ipynb 11
+# %% ../src/00_TreeClusters.ipynb 10
 def poligon_non_convex_random_gen(npoints # Number of point to generate the polygon 
                                  )-> shapely.geometry.Polygon: # The polygon created
     """
@@ -88,7 +88,7 @@ def poligon_non_convex_random_gen(npoints # Number of point to generate the poly
             keep_triangles.append(i)
     return shapely.ops.unary_union(keep_triangles)
 
-# %% ../src/00_TreeClusters.ipynb 13
+# %% ../src/00_TreeClusters.ipynb 12
 def string_recursive_tag( string_tag,
                          **kwargs):
     """
@@ -156,7 +156,7 @@ def string_recursive_tag( string_tag,
                 nodeid.append(str(num))
     return levels, nodeid
 
-# %% ../src/00_TreeClusters.ipynb 14
+# %% ../src/00_TreeClusters.ipynb 13
 #|code-fold: true
 def retag_from_strings(string_tag:str # String 
                       )-> str :
@@ -171,7 +171,7 @@ def retag_from_strings(string_tag:str # String
     return tag_recal
 
 
-# %% ../src/00_TreeClusters.ipynb 16
+# %% ../src/00_TreeClusters.ipynb 15
 class cluster(object):
     """
     A Basic class of a cluster 
@@ -185,7 +185,7 @@ class cluster(object):
         self.point_cluster_noise = None
     
 
-# %% ../src/00_TreeClusters.ipynb 18
+# %% ../src/00_TreeClusters.ipynb 17
 class NodeCluster(cluster, NodeMixin):
     def __init__(self, 
                 name:str,
@@ -1107,7 +1107,7 @@ class NodeCluster(cluster, NodeMixin):
         return polygon, random_point_center
 
 
-# %% ../src/00_TreeClusters.ipynb 61
+# %% ../src/00_TreeClusters.ipynb 60
 class TreeClusters(object):
     levels = 0
     levels_nodes=[]

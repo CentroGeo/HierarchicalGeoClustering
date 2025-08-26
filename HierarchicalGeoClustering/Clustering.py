@@ -6,9 +6,9 @@ __all__ = ['module_path', 'get_alpha_shape', 'set_colinear', 'collinear', 'get_s
            'compute_Natural_cities', 'compute_AMOEBA', 'clustering', 'recursive_clustering', 'get_tree_from_clustering',
            'recursive_clustering_tree', 'SSM', 'labels_filtra', 'levels_from_strings', 'level_tag',
            'get_tag_level_df_labels', 'get_mini_jaccars', 'get_dics_labels', 'get_label_clusters_df', 'mod_cid_label',
-           'retag_originals', 'generate_tree_clusterize_form']
+           'retag_originals', 'experiment_all']
 
-# %% ../src/01_Clustering.ipynb 2
+# %% ../src/01_Clustering.ipynb 3
 import os
 import sys
 import numpy as np
@@ -20,27 +20,33 @@ import shapely
 import random
 import time
 import re
+
+
+
+# %% ../src/01_Clustering.ipynb 4
 from CGAL.CGAL_Alpha_shape_2 import *
 from CGAL.CGAL_Kernel import Point_2
 from sklearn.cluster import DBSCAN, OPTICS
 from sklearn.preprocessing import StandardScaler
 from shapely.geometry import LineString
-from shapely.ops import polygonize, cascaded_union
+from shapely.ops import polygonize
 from shapely.geometry import box
 from shapely.geometry import Point, Polygon, MultiPolygon
 from shapely.ops import polygonize_full, linemerge, unary_union
 from scipy.spatial import cKDTree, Delaunay
 from graph_tool.all import triangulation, label_components
 from scipy.linalg import norm
-
 import hdbscan
 import graph_tool
+
+# %% ../src/01_Clustering.ipynb 5
 module_path = os.path.abspath(os.path.join('..'))
 if module_path not in sys.path:
     sys.path.append(module_path)
-from .TreeClusters import *
 
-# %% ../src/01_Clustering.ipynb 3
+from .TreeClusters import TreeClusters, NodeCluster
+
+# %% ../src/01_Clustering.ipynb 6
 def get_alpha_shape(point_list):
     """
     Returns a polygon representing the hull of the points sample.
@@ -76,7 +82,7 @@ def get_alpha_shape(point_list):
 
     return unary_union(list(polygonize(lines)))
 
-# %% ../src/01_Clustering.ipynb 4
+# %% ../src/01_Clustering.ipynb 7
 def set_colinear(list_points):
     """
     Check if in the list of points any of triplet of points
@@ -90,7 +96,7 @@ def set_colinear(list_points):
             return False
     return True
 
-# %% ../src/01_Clustering.ipynb 5
+# %% ../src/01_Clustering.ipynb 8
 def collinear(p1, p2, p3):
     """
     Check if the points are colinear 
@@ -105,7 +111,7 @@ def collinear(p1, p2, p3):
     """
     return (p1[1]-p2[1]) * (p1[0]-p3[0]) == (p1[1]-p3[1])*(p1[0]-p2[0])
 
-# %% ../src/01_Clustering.ipynb 8
+# %% ../src/01_Clustering.ipynb 11
 def get_segments(points):
     """ 
     Get the segments from a delaunay triangulation
@@ -126,7 +132,7 @@ def get_segments(points):
 
     return edges
 
-# %% ../src/01_Clustering.ipynb 10
+# %% ../src/01_Clustering.ipynb 13
 def get_polygons_buf(lines):
     """
     Obtain the poligons from the lines
@@ -143,7 +149,7 @@ def get_polygons_buf(lines):
     result = result.buffer(0.0000001)
     return result
 
-# %% ../src/01_Clustering.ipynb 12
+# %% ../src/01_Clustering.ipynb 15
 def jaccard_distance(p1, p2):
     """
     Computes the Jaccard similarity between two polygons.
@@ -157,7 +163,7 @@ def jaccard_distance(p1, p2):
     jacc= 1 - (intersection_area)/(p1.area + p2.area - intersection_area)
     return jacc
 
-# %% ../src/01_Clustering.ipynb 17
+# %% ../src/01_Clustering.ipynb 19
 def compute_dbscan(cluster,  **kwargs):
     
     """ 
@@ -240,7 +246,7 @@ def compute_dbscan(cluster,  **kwargs):
     
     return clusters
 
-# %% ../src/01_Clustering.ipynb 20
+# %% ../src/01_Clustering.ipynb 22
 def adaptative_DBSCAN(points2_clusters ,
                 **kwargs):
     """
@@ -381,7 +387,7 @@ def adaptative_DBSCAN(points2_clusters ,
 
     return clusters
 
-# %% ../src/01_Clustering.ipynb 23
+# %% ../src/01_Clustering.ipynb 25
 def compute_hdbscan(points2_clusters,  **kwargs):
     
     """
@@ -443,7 +449,7 @@ def compute_hdbscan(points2_clusters,  **kwargs):
 
     return clusters
 
-# %% ../src/01_Clustering.ipynb 26
+# %% ../src/01_Clustering.ipynb 28
 def compute_OPTICS(points2_clusters,  **kwargs):
     
     """ OPTICS wrapper.
@@ -507,7 +513,7 @@ def compute_OPTICS(points2_clusters,  **kwargs):
 
     return clusters
 
-# %% ../src/01_Clustering.ipynb 30
+# %% ../src/01_Clustering.ipynb 32
 def natural_cities_polygons(a_points, **kwargs ):
     """ Take a array of points and returns the natural Cities polygons.
         Parameters:
@@ -550,7 +556,7 @@ def natural_cities_polygons(a_points, **kwargs ):
         
     except:
         print(result)
-        print(len(result))
+        #print(len(result.geoms))
         print('Unable to do the dataframe return empty dataframes ')
         tail = gpd.GeoDataFrame()
         result_df = gpd.GeoDataFrame()
@@ -559,7 +565,7 @@ def natural_cities_polygons(a_points, **kwargs ):
         # result_df = gpd.GeoDataFrame({'geometry':[]})
     return (tail, result_df)
 
-# %% ../src/01_Clustering.ipynb 31
+# %% ../src/01_Clustering.ipynb 33
 def compute_Natural_cities(points2_clusters, **kwargs):
     """
     Compute Natural cities clustering
@@ -1304,7 +1310,7 @@ def get_dics_labels(tree_or, tree_res, **kwargs):
         ## Eliminate the clusters with nan  
         dic_level_df.dropna(axis=0, subset=['Sim_cluster'], inplace=True)
         
-        dic_lev  = dic_level_df['Sim_cluster'].to_dict()
+        dic_lev  = dic_level_df['Sim_cluster'].astype(int).to_dict()
         dic_list_levels.append({'level_ori':'level_'+str(i)+'_cluster', 'dict': dic_lev})
     return dic_list_levels
 
@@ -1381,255 +1387,199 @@ def retag_originals(df_fram_or: pd.DataFrame ,
     df_fram_or['re_tag_'+str(df_results.name)+'_'+tag_original] = df_fram_or[tag_original].apply(lambda l: dic_tag_or_res[l] if l in dic_tag_or_res.keys() else   str(int(l) +tag_plus) )
 
 # %% ../src/01_Clustering.ipynb 87
-def generate_tree_clusterize_form(**kwargs ):
-    """
-    Generates all the experiment all the experiment creates the data and clusterize using the algorithm available
-    
-    :param levels_tree: Levels for the tree
-    
-    :param int per_cluster: Points per clusters
-    
-    :param levels_cluster:  Levels to clusterize
-    
-    :param bool verbose:  To print some outputs 
-    
-    :returns: a dictionary with all the  data frames and a dictionary 
-    with the similarity measurment created
-     """
-    
-    levels_tree= kwargs.get('tree_level', 4)
-    per_cluster = kwargs.get('num_per_cluster', 200)
-    levels_cluster = kwargs.get('levels_cluster', 4)
-    verbose = kwargs.get('verbose', False)
-    
-    if verbose:
-        print('generating tree')
-    
-    
-    random.seed(int(time.time()))
-    random_seed = random.randint(0,1500)
-    print('Random to use: ',random_seed )
-    print('With',levels_tree , ' levels' )
-    tree_original= TreeClusters(levels_tree, random_seed= random_seed)
-    tree_original.populate_tree(number_per_cluster=per_cluster, **kwargs)
-    tree_original_points= tree_original.get_points_tree()
-    X_2=np.array([[p.x,p.y] for p in tree_original_points])
-    dic_points_ori={'points':[X_2], 'parent':''}
-    if verbose:
-        print('tree with: ', X_2.shape )
-    
-    while X_2.shape[0] < 2000:
-        
-        print('tree with too few elements to clusterize creating new tree')
+class experiment_all( ):
+    def __init__(self, **kwargs):
+        self.levels_tree_ori= kwargs.get('tree_level', 4)
+        per_cluster = kwargs.get('num_per_cluster', 200)
+        levels_cluster = kwargs.get('levels_cluster', 4)
+        verbose = kwargs.get('verbose', False)
+        if verbose:
+          print('generating tree')
         random.seed(int(time.time()))
-        random_seed = random.randint(0,1500)
-        print('Random to use: ',random_seed )
-        tree_original= TreeClusters(levels_tree, random_seed= random_seed)
-        tree_original.populate_tree(number_per_cluster=per_cluster,
-                                    avoid_intersec= True)
-        tree_original_points= tree_original.get_points_tree()
-        X_2=np.array([[p.x,p.y] for p in tree_original_points])
-        dic_points_ori={'points':[X_2], 'parent':''}
+        self.random = random.randint(0,1500)
+        if verbose:
+            print('Random to use: ',self.random )
+            print('With', self.levels_tree_ori , ' levels' )
         
+        self.tree_original= TreeClusters( self.levels_tree_ori, 
+                                         random_seed= self.random)
+        self.tree_original.populate_tree(number_per_cluster=per_cluster, **kwargs)
+        self.tree_original_points= self.tree_original.get_points_tree()
+        self.array_points = np.array([[p.x,p.y] for p in self.tree_original_points])
+        self.dic_points_ori ={'points':[self.array_points], 'parent':''}
+        if verbose:
+            print('tree with: ', self.array_points.shape )
     
-    
-    if verbose:
-        print('tree generated')
-    
-    
-    if verbose:
-        print('clusterize and creating the trees')
-    
-    tree_Natural_c = recursive_clustering_tree(dic_points_ori,
-                                               levels_clustering = levels_cluster,
-                                              algorithm = 'natural_cities', 
-                                               **kwargs,
-                                              )
-    tree_DBSCAN = recursive_clustering_tree(dic_points_ori,
-                                              levels_clustering = levels_cluster,
-                                              algorithm = 'dbscan',
-                                              **kwargs,
-                                           )
-    tree_HDBSCAN = recursive_clustering_tree(dic_points_ori,
-                                              levels_clustering = levels_cluster,
-                                              algorithm = 'hdbscan',
-                                              **kwargs,
-                                            )
-    tree_OPTICS= recursive_clustering_tree(dic_points_ori,
-                                              levels_clustering = levels_cluster,
-                                              algorithm = 'optics',
-                                              **kwargs,
-                                            )
-    tree_Adap_DBSCAN = recursive_clustering_tree(dic_points_ori,
-                                              levels_clustering = levels_cluster,
-                                              algorithm = 'adaptative_DBSCAN',
-                                              **kwargs,
-                                            )
-    if verbose:
-        print('DONE clusterize and creating the trees')
-    ######  get the points dataframe for each tree 
-    data_fram_or = tree_original.get_dataframe_recursive_node_label(func_level_nodes = levels_from_strings)
-    df_Natural = tree_Natural_c.get_dataframe_recursive_node_label()
-    df_DBSCAN = tree_DBSCAN.get_dataframe_recursive_node_label()
-    df_HDBSCAN = tree_HDBSCAN.get_dataframe_recursive_node_label()
-    df_OPTICS = tree_OPTICS.get_dataframe_recursive_node_label()
-    df_Adap_DBSCAN = tree_Adap_DBSCAN.get_dataframe_recursive_node_label()
-    
-    df_Natural.name='Natural_C'
-    df_DBSCAN.name= 'DBSCAN'
-    df_HDBSCAN.name= 'HDBSCAN'
-    df_OPTICS.name= 'OPTICS'
-    df_Adap_DBSCAN.name = 'Adap_DBSCAN'
-    
-    if verbose:
-        print('Original size',data_fram_or.shape )
-        print('Natural size',df_Natural.shape)
-        print('DBSCAN size',df_DBSCAN.shape)
-        print('HDBSCAN size',df_HDBSCAN.shape)
-        print('OPTICS size',df_OPTICS.shape)
-        print('adaptative_DBSCAN size',df_Adap_DBSCAN.shape)
-    
-    ######For each dataframe  
-    if verbose:
-        print('get dataframe Original')
-    get_tag_level_df_labels(data_fram_or, levels_cluster)
-    ###Natural Cities
-    if verbose:
-        print('get dataframe Natural cities')
+        while self.array_points.shape[0] < 2000:
+            print('tree with too few elements to clusterize creating new tree')
+            random.seed(int(time.time()))
+            self.random = random.randint(0,1500)
+            print('Random to use: ',self.random )
+            self.tree_original= TreeClusters(
+                                 self.levels_tree_ori,
+                                random_seed= self.random)
+            self.tree_original.populate_tree(
+                number_per_cluster=per_cluster,
+                avoid_intersec= True)
+            self.tree_original_points= self.tree_original.get_points_tree()
+            self.array_points=np.array([[p.x,p.y] for p in self.tree_original_points])
+            self.dic_points_ori={'points':[X_2], 'parent':''}
         
-    dic_final_levels_Natural_c = get_dics_labels(tree_original, tree_Natural_c)
-    dic_label_final_levels_Natural=[ {'level_ori':dic['level_ori'], 'dict':mod_cid_label(dic['dict']) } for dic in  dic_final_levels_Natural_c]
-    get_tag_level_df_labels(df_Natural, levels_cluster)
-    for dic in dic_label_final_levels_Natural[1:]: ## En el nivel 0 no tiene sentido
-        tag_ori = dic['level_ori']
-        dic_lev = dic['dict']
-        retag_originals(data_fram_or,
-                        df_Natural,
-                        tag_ori,
-                        tag_ori,#### Como se hizo con la misma funcion tienen las misma etiqueta 
-                        dic_lev)
-    
-    
-    ### DBSCAN
-    if verbose:
-        print('get dataframe DBSCAN')
-        
-    dic_final_levels_DBSCAN = get_dics_labels(tree_original, tree_DBSCAN)
-    dic_label_final_levels_DBSCAN=[ {'level_ori':dic['level_ori'], 'dict':mod_cid_label(dic['dict']) } for dic in  dic_final_levels_DBSCAN]
-    get_tag_level_df_labels(df_DBSCAN, levels_cluster)
-    for dic in dic_label_final_levels_DBSCAN[1:]: ## En el nivel 0 no tiene sentido
-        tag_ori = dic['level_ori']
-        dic_lev = dic['dict']
-        retag_originals(data_fram_or,
-                        df_DBSCAN,
-                        tag_ori,
-                        tag_ori,#### Como se hizo con la misma funcion tienen las misma etiqueta 
-                        dic_lev)
-    
-    
-    ##HDBSCAN
-    if verbose:
-        print('get dataframe HDBSCAN')
-    dic_final_levels_HDBSCAN = get_dics_labels(tree_original, tree_HDBSCAN)
-    dic_label_final_levels_HDBSCAN=[ {'level_ori':dic['level_ori'], 'dict':mod_cid_label(dic['dict']) } for dic in  dic_final_levels_HDBSCAN]
-    get_tag_level_df_labels(df_HDBSCAN, levels_cluster)
-    for dic in dic_label_final_levels_HDBSCAN[1:]: ## En el nivel 0 no tiene sentido
-        tag_ori = dic['level_ori']
-        dic_lev = dic['dict']
-        retag_originals(data_fram_or,
-                        df_HDBSCAN,
-                        tag_ori,
-                        tag_ori,#### Como se hizo con la misma funcion tienen las misma etiqueta 
-                        dic_lev)
-    #### OPTICS
-    if verbose:
-        print('get dataframe OPTICS')
-        
-    dic_final_levels_OPTICS = get_dics_labels(tree_original, tree_OPTICS)
-    dic_label_final_levels_OPTICS=[ {'level_ori':dic['level_ori'], 'dict':mod_cid_label(dic['dict']) } for dic in  dic_final_levels_OPTICS]
-    get_tag_level_df_labels(df_OPTICS, levels_cluster)
-    for dic in dic_label_final_levels_OPTICS[1:]: ## En el nivel 0 no tiene sentido
-        tag_ori = dic['level_ori']
-        dic_lev = dic['dict']
-        retag_originals(data_fram_or,
-                        df_OPTICS,
-                        tag_ori,
-                        tag_ori,#### Como se hizo con la misma funcion tienen las misma etiqueta 
-                        dic_lev)
-    ##### Adap_DBSCAN
-    if verbose:
-        print('get adaptative DBSCAN')
-        
-    dic_final_levels_Adap_DBSCAN = get_dics_labels(tree_original, tree_Adap_DBSCAN)
-    dic_label_final_levels_Adap_DBSCAN=[ {'level_ori':dic['level_ori'], 'dict':mod_cid_label(dic['dict']) } for dic in  dic_final_levels_Adap_DBSCAN]
-    get_tag_level_df_labels(df_Adap_DBSCAN, levels_cluster)
-    for dic in dic_label_final_levels_Adap_DBSCAN[1:]: ## En el nivel 0 no tiene sentido
-        tag_ori = dic['level_ori']
-        dic_lev = dic['dict']
-        retag_originals(data_fram_or,
-                        df_Adap_DBSCAN,
-                        tag_ori,
-                        tag_ori,#### Como se hizo con la misma funcion tienen las misma etiqueta 
-                        dic_lev)
-    ##############################################Get only signal  noise 
-    data_fram_or_sig_noise = tree_original.get_tag_noise_signal_tree()
-    df_Natural_sig_noise = tree_Natural_c.get_tag_noise_signal_tree()
-    df_DBSCAN_sig_noise = tree_DBSCAN.get_tag_noise_signal_tree()
-    df_HDBSCAN_sig_noise = tree_HDBSCAN.get_tag_noise_signal_tree()
-    df_OPTICS_sig_noise = tree_OPTICS.get_tag_noise_signal_tree()
-    df_Adap_DBSCAN_sig_noise = tree_Adap_DBSCAN.get_tag_noise_signal_tree()
-    
-    df_Natural_sig_noise.name='I_Natural_C'
-    df_DBSCAN_sig_noise.name= 'I_DBSCAN'
-    df_HDBSCAN_sig_noise.name= 'I_HDBSCAN'
-    df_OPTICS_sig_noise.name= 'I_OPTICS'
-    df_Adap_DBSCAN_sig_noise.name = 'I_Adap_DBSCAN'
-    
-    
-    
-    
-    
-    
-    ######Evaluate form metric#| hide 
-### Test
-    if verbose:
-        print('Niveles: ' ,len(tree_original.levels_nodes))
-        print('Nodos en el ultimo nivel: ' ,len(tree_original.levels_nodes[-1]))
-        #print('tag_all : ' , data_fram_or['Final_tag'].unique())
-    levels_r = range(0, levels_cluster)###
-    resultado_form_metric = []
-    for l in levels_r:
-        
-        d = { 'Level': l,
-            'DBSCAN': SSM(tree_original.levels_nodes[l],
-                                            tree_DBSCAN.levels_nodes[l]),
-             'HDBSCAN': SSM(tree_original.levels_nodes[l],
-                                             tree_HDBSCAN.levels_nodes[l]),
-             'Natural': SSM(tree_original.levels_nodes[l],
-                                             tree_Natural_c.levels_nodes[l]),
-             'OPTICS': SSM(tree_original.levels_nodes[l],
-                                            tree_OPTICS.levels_nodes[l]),
-             'Adap_DBSCAN': SSM(tree_original.levels_nodes[l],
-                                          tree_Adap_DBSCAN.levels_nodes[l])
-             }
-        resultado_form_metric.append(d)
-    
+        if verbose:
+            print('tree generated')
+        self.tree_Natural_c = None
+        self.tree_DBSCAN  = None
+        self.tree_HDBSCAN  = None
+        self.tree_OPTICS = None
+        self.tree_Adap_DBSCAN = None
 
-    return {'Point_dataframes':{'original_retag':data_fram_or,
-            'Natural_C':df_Natural ,
-            'DBSCAN':df_DBSCAN,
-            'HDBSCAN':df_HDBSCAN,
-            'OPTICS':df_OPTICS,
-            'Adap_DBSCAN':df_Adap_DBSCAN
-           }, 'metric_form': resultado_form_metric,
-            'Noise_signal':{
-            'original_retag':data_fram_or_sig_noise,
-            'Natural_C':df_Natural_sig_noise ,
-            'DBSCAN':df_DBSCAN_sig_noise,
-            'HDBSCAN':df_HDBSCAN_sig_noise,
-            'OPTICS':df_OPTICS_sig_noise,
-            'Adap_DBSCAN':df_Adap_DBSCAN_sig_noise
-            }
-           
-           }
+        ### Only original dataframe 
+        self.data_fram_or= None
+
+    ##get each type
+    def clustering(self, algorithm= 'dbscan', **kwargs):
+        """
+        To obtain the tree from different clustering algorithms 
+        """
+        levels_cluster = kwargs.get('levels_cluster', 4)
+        if algorithm == 'natural_cities':
+            self.tree_Natural_c = recursive_clustering_tree(
+                self.dic_points_ori,
+                levels_clustering = levels_cluster,
+                algorithm = 'natural_cities', 
+                **kwargs,
+            )
+        elif algorithm == 'dbscan':
+
+            self.tree_DBSCAN = recursive_clustering_tree(
+                self.dic_points_ori,
+                levels_clustering = levels_cluster,
+                algorithm = 'dbscan',
+                **kwargs,
+            )
+        elif algorithm == 'hdbscan' :
+            self.tree_HDBSCAN = recursive_clustering_tree(
+                self.dic_points_ori,
+                levels_clustering = levels_cluster,
+                algorithm = 'hdbscan',
+                **kwargs,
+            )
+        elif algorithm == 'optics' :
+            self.tree_OPTICS= recursive_clustering_tree(
+                self.dic_points_ori,
+                levels_clustering = levels_cluster,
+                algorithm = 'optics',
+                **kwargs,
+            )
+            
+        elif algorithm == 'adaptative_DBSCAN' :
+            self.tree_Adap_DBSCAN = recursive_clustering_tree(
+                self.dic_points_ori,
+                levels_clustering = levels_cluster,
+                algorithm = 'adaptative_DBSCAN',
+                **kwargs,
+            )
+    
+    #### get the dataframe from the a specific tree 
+    def get_dataframe(self, tree_to = 'original', **kwargs):
+        """
+        Get the dataframe from the tree 
+        """
+        verbose = kwargs.get('verbose', False)
+        
+
+        if verbose:
+            print('Getting the ',   tree_to, ' dataframe')
+        ######  get the points dataframe for each tree 
+        if tree_to == 'original':
+            
+            df_tree = self.tree_original.get_dataframe_recursive_node_label(func_level_nodes = levels_from_strings)
+            df_tree.name= 'Original'
+            return df_tree
+        elif tree_to == 'natural_cities':
+            if self.tree_Natural_c is None:
+                print('The tree has not been created for this algorithm')
+            df_tree = self.tree_Natural_c.get_dataframe_recursive_node_label()
+            df_tree.name= 'Natural_C'
+            return df_tree 
+            
+        elif tree_to == 'dbscan':
+            if self.tree_DBSCAN is None:
+                print('The tree has not been created for this algorithm')
+            df_tree = self.tree_DBSCAN.get_dataframe_recursive_node_label()
+            df_tree.name= 'DBSCAN'
+            return df_tree
+
+        elif tree_to == 'hdbscan':
+            if self.tree_HDBSCAN is None:
+                print('The tree has not been created for this algorithm')
+            df_tree = self.tree_HDBSCAN.get_dataframe_recursive_node_label()
+            df_tree.name= 'HDBSCAN'
+            return df_tree
+        
+        elif tree_to == 'optics':
+            if self.tree_OPTICS is None:
+                print('The tree has not been created for this algorithm')
+            df_tree = self.tree_OPTICS.get_dataframe_recursive_node_label()
+            df_tree.name= 'OPTICS'
+            return df_tree
+
+        elif tree_to == 'adaptative_DBSCAN':
+            if self.tree_Adap_DBSCAN is None:
+                print('The tree has not been created for this algorithm')
+            df_tree = self.tree_Adap_DBSCAN.get_dataframe_recursive_node_label()
+            df_tree.name= 'Adap_DBSCAN'
+            return df_tree
+        else:
+            print('No implemented')
+        return 
+
+    def get_labels_trees(self,tree_to = 'dbscan', **kwargs ):
+        """
+        Get the labels of the trees 
+        """
+        
+        levels_cluster = kwargs.get('levels_cluster', 4)
+        
+        if tree_to == 'natural_cities':
+            tree_use = self.tree_Natural_c
+            
+        elif tree_to == 'dbscan':
+            tree_use = self.tree_DBSCAN
+
+        elif tree_to == 'hdbscan':
+            tree_use = self.tree_HDBSCAN
+
+        elif tree_to == 'optics':
+            tree_use = self.tree_OPTICS
+
+        elif tree_to == 'adaptative_DBSCAN':
+            tree_use = self.tree_Adap_DBSCAN
+        
+        data_frame_tree = self.get_dataframe(tree_to = tree_to , **kwargs)
+        
+        if  self.data_fram_or is None:
+            self.data_fram_or = self.get_dataframe(tree_to = 'original' , **kwargs)
+        
+        dic_final_levels_algorithm= get_dics_labels(self.tree_original, tree_use)
+        dic_label_final_levels_algorithm =[
+            {'level_ori':dic['level_ori'],
+              'dict':mod_cid_label(dic['dict']) 
+            } for dic in  dic_final_levels_algorithm
+        ]
+        get_tag_level_df_labels(data_frame_tree, levels_cluster)
+        for dic in dic_label_final_levels_algorithm[1:]: ## En el nivel 0 no tiene sentido
+           tag_ori = dic['level_ori']
+           dic_lev = dic['dict']
+           retag_originals(self.data_fram_or,
+                        data_frame_tree,
+                        tag_ori,
+                        tag_ori,#### Como se hizo con la misma funcion tienen las misma etiqueta 
+                        dic_lev
+            )
+        return data_frame_tree
+        
+
+
+    
 

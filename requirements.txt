@@ -1,0 +1,12 @@
+rasterio
+pandas
+geopandas
+pysal
+scikit-learn
+seaborn
+scikit-image
+matplotlib
+geopy
+anytree
+kneed
+hdbscan

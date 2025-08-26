@@ -1,0 +1,58 @@
+name: Deploy to GitHub Pages
+
+permissions:
+  contents: write
+  pages: write
+
+on:
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps: 
+      - uses: actions/checkout@v4
+      - uses: conda-incubator/setup-miniconda@v3
+        with: 
+          python-version: 3.11
+          mamba-version: "*"
+          channels: conda-forge,defaults
+          channel-priority: true
+          activate-environment: anaconda-client-env
+      - name: Install Nbdev Dependencies and package dependencies
+        shell: bash -el {0}
+        run: |
+          mamba install pip
+          pip install -Uq git+https://github.com/fastai/ghapi.git # you need this for enablin>
+          pip install -Uq git+https://github.com/fastai/fastcore.git
+          pip install -Uq git+https://github.com/fastai/execnb.git
+          pip install -U git+https://github.com/fastai/nbdev.git
+          wget -nv https://www.quarto.org/download/latest/quarto-linux-amd64.deb
+          sudo dpkg -i quarto*.deb
+          mamba install cgal
+          mamba install matplotlib
+          mamba install setuptools
+          mamba install scikit-learn
+          mamba install pandas
+          mamba install anytree
+          mamba install shapely
+          mamba install geopandas
+          mamba install kneed
+          mamba install graph-tool
+          mamba install hdbscan
+          pip install -e ".[dev]"
+          echo $(nbdev_bump_version)   
+
+      - name: Build the doumentation
+        shell: bash -l {0}
+        run: | 
+          nbdev_docs --n_workers=1
+          echo "Ya se hizo la documentacion"
+          ls
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          force_orphan: true
+          publish_dir: ./docs
+          user_name: github-actions[bot]
+          user_email: 41898282+github-actions[bot]@users.noreply.github.com

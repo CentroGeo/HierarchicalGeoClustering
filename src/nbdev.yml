@@ -1,0 +1,9 @@
+project:
+  output-dir: docs
+
+website:
+  title: "HierarchicalGeoClustering"
+  site-url: "https://msalazarcgeo.github.io/HierarchicalGeoClustering"
+  description: "A Python library for hierarchical clustering"
+  repo-branch: main
+  repo-url: "https://github.com/msalazarcgeo/HierarchicalGeoClustering"
